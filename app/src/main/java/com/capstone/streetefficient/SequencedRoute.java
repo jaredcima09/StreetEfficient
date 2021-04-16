@@ -17,6 +17,7 @@ import android.graphics.Color;
 import android.content.Intent;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.telephony.SmsManager;
@@ -30,6 +31,7 @@ import com.capstone.streetefficient.fragments.dialogs.NotNextDialog;
 import com.capstone.streetefficient.functions.PhysicsFunctions;
 import com.capstone.streetefficient.functions.Utilities;
 import com.capstone.streetefficient.models.RouteDetail;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.gson.Gson;
 import com.google.maps.GeoApiContext;
 import com.google.maps.PendingResult;
@@ -115,7 +117,6 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
     private ArrayList<Integer> sequencedRoute;
 
     private SharedPreferences mprefs;
-    private DocumentReference routeHeaderRef;
     private LinearLayout layout;
     private AssignedItemsHelper assignedItemsHelper;
     private SequencedRouteHelper sequencedRouteHelper;
@@ -123,7 +124,9 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
 
     private String routeHeaderID;
 
-    FloatingActionButton fabMain, fabNotNext;
+    private FloatingActionButton fabMain, fabNotNext;
+
+    private SwitchMaterial switchMaterial;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,6 +136,7 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
         fabMain = findViewById(R.id.fab_main);
         fabNotNext = findViewById(R.id.fab_not_next);
         layout = findViewById(R.id.sequenced_progress);
+        switchMaterial = findViewById(R.id.sequence_switch);
 
 
         arrayListOfPolyLines = new ArrayList<>();
@@ -176,7 +180,7 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
                 super.onLocationResult(locationResult);
                 MOVING_LATLNG = new LatLng(locationResult.getLocations().get(0).getLatitude(), locationResult.getLocations().get(0).getLongitude());
                 mMarker.setPosition(MOVING_LATLNG);
-                //startDirections(MOVING_LATLNG, NEXT_LOCATION, false);
+                startDirections(MOVING_LATLNG, NEXT_LOCATION, false);
 
                 if (!routeStarted) {
 
@@ -221,42 +225,12 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
 
         fabNotNext.setOnClickListener(v -> new NotNextDialog().show(getSupportFragmentManager(), "notNextDialog"));
         fabMain.setOnClickListener(fabMainClick);
+        switchMaterial.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if(!isChecked) removePolyLines();
+        });
+
     }
 
-
-//    private void intentFinished() {
-//        DocumentReference routeRef = FirebaseFirestore.getInstance().collection("Route_Detail").document();
-//
-//        double delivery_time = System.currentTimeMillis() - elapsedTime;
-//        double distance = haversineFormula(RIDER_LATLNG, MOVING_LATLNG);
-//        double est = PhysicsFunctions.getEST(distance);
-//        double speed = PhysicsFunctions.getSpeed(distance, totalTripTime);
-//        double scoreTime = PhysicsFunctions.getPercentError(distance, totalTripTime, est);
-//        double scoreSpeed = PhysicsFunctions.getPercentError(distance, speed, 60);
-//        double totalScore = PhysicsFunctions.getTotalScore(scoreSpeed, scoreTime);
-//
-//        RouteDetail routeDetail = new RouteDetail(new Date(), routeRef.getId(), routeHeaderRef.getId(), assignedItemsHelper.getItemAtPosition(CURRENT_LOCATION).getItem_id(), "BRANCH WAREHOUSE", totalScore, speed, est, totalTripTime, distance);
-//        sequencedRouteHelper.addRouteDetail(routeDetail);
-//
-//        RouteHeader routeHeader = PhysicsFunctions.getRouteHeader(routeHeaderRef.getId(), delivery_time, sequencedRouteHelper.getRouteDetails());
-//
-//        WriteBatch writeBatch = FirebaseFirestore.getInstance().batch();
-//        writeBatch.set(routeHeaderRef, routeHeader);
-//        writeBatch.set(routeRef, routeDetail);
-//        writeBatch.commit().addOnSuccessListener(aVoid -> {
-//
-//            //sequencedRouteHelper.addBreakdownFragment(new BreakdownFragment(totalTripTime, Utilities.getAddress(ARRIVED_INDEX), Utilities.roundOff(distance) + "KM", est, Utilities.getAddress(CURRENT_LOCATION), routeRef.getId(), scoreSpeed, scoreTime, (speed), totalScore));
-//            routeTaken.add(CURRENT_LOCATION);
-//            routeTaken.add(NEXT_LOCATION);
-//
-//            Intent intent = new Intent(SequencedRoute.this, FinishedRoute.class);
-//            intent.putExtra("routeHeader", routeHeader);
-//            intent.putExtra("routeTaken", routeTaken);
-//            startActivity(intent);
-//            finish();
-//
-//        });
-//    }
 
     private void intentArrived() {
         DocumentReference routeRef = FirebaseFirestore.getInstance().collection("Route_Detail").document();
@@ -292,8 +266,8 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
         sequencedRoute.remove((Integer) ARRIVED_INDEX);
         sequencedRoute.remove((Integer) CURRENT_LOCATION);
 
-        System.out.println("NANAY ROUTE TAKEN: " + routeTaken);
-        System.out.println("NANAY ROUTE CHECK: " + sequencedRoute);
+
+
         sequencedRouteHelper.setTotalDeliveryTime(startDeliveryTime);
         startActivity(new Intent(this, FinishedRoute.class));
         finish();
@@ -303,7 +277,7 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
         removePolyLines();
         routeStarted = false;
         startLocationUpdates();
-        //startDirections(latLngs[CURRENT_LOCATION], NEXT_LOCATION, false);
+        startDirections(latLngs[CURRENT_LOCATION], NEXT_LOCATION, false);
     }
 
     private final View.OnClickListener fabMainClick = v -> {
@@ -351,8 +325,18 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
         CURRENT_LOCATION = mprefs.getInt("CURRENT_SEQUENCE_INDEX", latLngs.length - 1);
         NEXT_LOCATION = sequencedRoute.get(0);
 
-        System.out.println("NANAY ROUTE TAKEN: " + routeTaken);
-        System.out.println("NANAY ROUTE CHECK: " + sequencedRoute);
+        layout.setVisibility(View.GONE);
+        fabMain.setVisibility(View.VISIBLE);
+        switchMaterial.setVisibility(View.VISIBLE);
+
+        googleMap.setOnMapLoadedCallback(() -> {
+
+            zoomRoute(Arrays.asList(assignedItemsHelper.getLatLngs()));
+            for (int i = 0; i < sequencedRoute.size() - 1; i++) {
+                startDirections(latLngs[sequencedRoute.get(i)], sequencedRoute.get(i + 1), true);
+            }
+        });
+
     }
 
     @Override
@@ -373,8 +357,6 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
 
                 startTrip();
 
-                System.out.println("NANAY ROUTE TAKEN: " + routeTaken);
-                System.out.println("NANAY ROUTE CHECK: " + sequencedRoute);
                 //zoomRoute(new ArrayList<>(Arrays.asList(CURRENT_LOCATION, NEXT_LOCATION)));
             } //else if (resultCode == RESULT_CANCELED) intentArrived();
 
@@ -437,7 +419,9 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
     }
 
     private void startDirections(LatLng first, int second, boolean zoomAll) {
-        //LatLng currentIndex = latLngs[first];
+        if(!switchMaterial.isChecked()) return;
+
+
         LatLng nextIndex = latLngs[second];
 
         com.google.maps.model.LatLng Origin = new com.google.maps.model.LatLng(first.latitude, first.longitude);
@@ -539,7 +523,6 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
         TspAlgorithm tspAlgorithm = new TspAlgorithm(latLngs.length - 1, distanceMatrix);
         sequencedRoute = tspAlgorithm.getSequence();
         sequencedRouteHelper.setSequencedRoute(sequencedRoute);
-        layout.setVisibility(View.GONE);
         isSequenced = true;
         sendNotif();
         for (int i = 0; i < latLngs.length - 1; i++) {
@@ -550,15 +533,6 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
             manager.cluster();
         }
         sequencedRoute.remove(0);
-        googleMap.setOnMapLoadedCallback(() -> {
-
-            zoomRoute(Arrays.asList(assignedItemsHelper.getLatLngs()));
-//            for (int i = 0; i < sequencedRoute.size() - 1; i++) {
-//                //startDirections(latLngs[sequencedRoute.get(i)], sequencedRoute.get(i + 1), true);
-//            }
-        });
-
-
     }
 
     private static double haversineFormula(LatLng latlng1, LatLng latlng2) {

@@ -84,7 +84,7 @@ public class FinishedRoute extends AppCompatActivity {
                 correct++;
         }
 
-        System.out.println("NANAY CORRECT: "+correct);
+
 
         averageTotalScore /= sequencedRouteHelper.getRouteDetails().size();
         averageSpeed /= (sequencedRouteHelper.getRouteDetails().size() - failedToDeliver);

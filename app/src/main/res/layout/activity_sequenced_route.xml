@@ -7,35 +7,6 @@
     tools:context=".SequencedRoute">
 
 
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/map"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:context=".SequencedRoute" />
-
-
-    <LinearLayout
-        android:id="@+id/sequenced_progress"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/white"
-        android:gravity="center"
-        android:orientation="vertical">
-
-        <ProgressBar
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:indeterminateTint="@color/colorPrimary" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/sequencing_route"
-            android:textColor="@color/black" />
-    </LinearLayout>
-
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_not_next"
         android:layout_width="wrap_content"
@@ -63,7 +34,45 @@
         android:backgroundTint="@color/white"
         android:contentDescription="@string/fab_main_option"
         android:src="@drawable/ic_route"
+        android:visibility="invisible"
         app:backgroundTint="@color/colorPrimary"
         app:borderWidth="2dp"
         app:tint="@null" />
+
+
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".SequencedRoute" />
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:visibility="invisible"
+        android:id="@+id/sequence_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:checked="true" />
+
+    <LinearLayout
+        android:id="@+id/sequenced_progress"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/white"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <ProgressBar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminateTint="@color/colorPrimary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/sequencing_route"
+            android:textColor="@color/black" />
+    </LinearLayout>
+
 </RelativeLayout>

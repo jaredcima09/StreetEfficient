@@ -128,7 +128,6 @@ public class AssignedItemsFragment extends Fragment {
                         locationResult.getLocations().get(0).getLongitude()));
                 fusedLocationClient.removeLocationUpdates(locationCallback);
                 gettingLocationDialog.dismiss();
-                System.out.println(Arrays.toString(assignedItemsHelper.getLatLngs()));
                 if (clickedSequenced) intentToSequence();
             }
         };
@@ -157,7 +156,6 @@ public class AssignedItemsFragment extends Fragment {
             assignedItemsHelper.addLatLng(mPosition, data.getParcelableExtra("LatLng"));
             assignedItemsHelper.getItemAtPosition(mPosition).setReviewed(true);
             mAdapter.notifyDataSetChanged();
-            System.out.println(Arrays.toString(assignedItemsHelper.getLatLngs()));
         }
 
         if (requestCode == SCAN_BARCODE && resultCode == Activity.RESULT_OK && data != null) {
