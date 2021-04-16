@@ -1,0 +1,25 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.StreetEfficient" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">#427DD0</item>
+        <item name="colorPrimaryDark">#0F69E6</item>
+        <item name="colorPrimaryVariant">@color/purple_700</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/teal_200</item>
+        <item name="colorSecondaryVariant">@color/teal_700</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor" >#0F69E6</item>
+        <!-- Customize your theme here. -->
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="snackbarStyle">@style/snackbar_style</item>
+    </style>
+
+    <style name="snackbar_style" parent="@style/Widget.MaterialComponents.Snackbar">
+        <!-- using backgroundTint the alpha layer is ignored -->
+        <item name="backgroundTint">#427DD0</item>
+    </style>
+</resources>

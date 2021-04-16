@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "10883215181",
+    "project_id": "street-effecient-firebase",
+    "storage_bucket": "street-effecient-firebase.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:10883215181:android:316db366d31c5338cd1104",
+        "android_client_info": {
+          "package_name": "com.capstone.streetefficient"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "10883215181-0oehj92chsfhbft4t55pkf708qdc0p3k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4_eritiNaehXnANlbhUXF79-Z2qfvWKo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "10883215181-0oehj92chsfhbft4t55pkf708qdc0p3k.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
