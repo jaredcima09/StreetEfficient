@@ -43,21 +43,25 @@ public class PhysicsFunctions {
         else return " " + hours + " hour(s) and" + minutes + " minute(s)";
     }
 
-//    public static RouteHeader getRouteHeader(String routeHeaderID, double totalTime, ArrayList<RouteDetail> routeDetails) {
-//        double averageSpeed = 0;
-//        double totalDistance = 0;
-//        double averageTotalScore = 0;
-//        Log.d("routeDetails ",""+routeDetails.size());
-//        for (RouteDetail routeDetail : routeDetails) {
-//            Log.d("averageSpeed ",""+routeDetail.getSpeed());
-//            averageSpeed += routeDetail.getSpeed();
-//            totalDistance += routeDetail.getDistance();
-//            averageTotalScore += routeDetail.getScore();
-//        }
-//        averageTotalScore /= routeDetails.size();
-//        averageSpeed /= routeDetails.size();
-//
-//    }
+    public static double[][] generateDistanceMatrix(LatLng[]latLngs) {
+        double[][] distanceMatrix = new double[latLngs.length][latLngs.length];
+
+        for (int i = 0; i < latLngs.length; i++) {
+            for (int j = 0; j < latLngs.length; j++) {
+                if (distanceMatrix[i][j] == 0) {
+                    if (i == j) {
+                        continue;
+                    }
+                    double ans = getDistance(latLngs[i], latLngs[j]);
+                    distanceMatrix[i][j] = ans;
+                    distanceMatrix[j][i] = ans;
+
+                }
+            }
+        }
+
+        return distanceMatrix;
+    }
 
     public static double getDistance(LatLng latlng1, LatLng latlng2) {
         double lat1 = latlng1.latitude;

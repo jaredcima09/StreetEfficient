@@ -2,6 +2,7 @@ package com.capstone.streetefficient.models;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Objects;
 
 public class Item implements Serializable {
     private String courier_id;
@@ -149,30 +150,7 @@ public class Item implements Serializable {
 
     @Override
     public String toString() {
-        return "Item{" +
-                "courier_id='" + courier_id + '\'' +
-                ", date_encoded=" + date_encoded +
-                ", encodedBy='" + encodedBy + '\'' +
-                ", itemCOD='" + itemCOD + '\'' +
-                ", itemRecipientAddressBarangay='" + itemRecipientAddressBarangay + '\'' +
-                ", itemRecipientAddressCity='" + itemRecipientAddressCity + '\'' +
-                ", itemRecipientAddressProvince='" + itemRecipientAddressProvince + '\'' +
-                ", itemRecipientAddressStreet='" + itemRecipientAddressStreet + '\'' +
-                ", itemRecipientBranch='" + itemRecipientBranch + '\'' +
-                ", itemRecipientContactNumber='" + itemRecipientContactNumber + '\'' +
-                ", itemRecipientname='" + itemRecipientname + '\'' +
-                ", itemSenderAddressBarangay='" + itemSenderAddressBarangay + '\'' +
-                ", itemSenderAddressCity='" + itemSenderAddressCity + '\'' +
-                ", itemSenderAddressProvince='" + itemSenderAddressProvince + '\'' +
-                ", itemSenderAddressStreet='" + itemSenderAddressStreet + '\'' +
-                ", itemSenderBranch='" + itemSenderBranch + '\'' +
-                ", itemSenderContactNumber='" + itemSenderContactNumber + '\'' +
-                ", itemSendername='" + itemSendername + '\'' +
-                ", item_id='" + item_id + '\'' +
-                ", itemqty='" + itemqty + '\'' +
-                ", itemweight='" + itemweight + '\'' +
-                ", status='" + status + '\'' +
-                '}';
+        return "item id: "+ item_id;
     }
 
     public boolean isReviewed() {
@@ -181,5 +159,18 @@ public class Item implements Serializable {
 
     public void setReviewed(boolean reviewed) {
         this.reviewed = reviewed;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Item item = (Item) o;
+        return Objects.equals(item_id, item.item_id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(item_id);
     }
 }

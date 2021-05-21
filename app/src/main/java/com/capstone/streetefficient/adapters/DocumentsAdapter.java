@@ -8,6 +8,7 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.viewpager.widget.PagerAdapter;
 
+import com.capstone.streetefficient.R;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ public class DocumentsAdapter extends PagerAdapter {
 
         Picasso.get()
                 .load(documents.get(position))
+                .error(R.drawable.helmet)
                 .fit()
                 .centerInside()
                 .into(imageView);

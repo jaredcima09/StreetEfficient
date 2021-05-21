@@ -39,6 +39,22 @@
         app:borderWidth="2dp"
         app:tint="@null" />
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_add"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/fab_not_next"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:backgroundTint="@color/white"
+        android:contentDescription="@string/fab_main_option"
+        android:src="@drawable/ic_box"
+        android:visibility="invisible"
+        app:backgroundTint="@color/colorPrimary"
+        app:borderWidth="2dp"
+        app:tint="@null" />
+
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/map"
@@ -48,11 +64,11 @@
         tools:context=".SequencedRoute" />
 
     <com.google.android.material.switchmaterial.SwitchMaterial
-        android:visibility="invisible"
         android:id="@+id/sequence_switch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:checked="true" />
+        android:checked="true"
+        android:visibility="invisible" />
 
     <LinearLayout
         android:id="@+id/sequenced_progress"

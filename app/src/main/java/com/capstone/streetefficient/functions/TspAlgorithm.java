@@ -1,6 +1,7 @@
 package com.capstone.streetefficient.functions;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class TspAlgorithm {
     private final int ROUTE_SIZE;
@@ -8,7 +9,7 @@ public class TspAlgorithm {
     private final int FINISHED_STATE;
 
     private final double[][] DISTANCE_MATRIX;
-    private final ArrayList<Integer> SEQUENCED_ROUTE = new ArrayList<>();
+    private ArrayList<Integer> SEQUENCED_ROUTE = new ArrayList<>();
 
     private double routeDistance = Double.POSITIVE_INFINITY;
     private boolean ranSolver = false;
@@ -34,6 +35,11 @@ public class TspAlgorithm {
     }
 
     private void solveSequence() {
+
+        if(DISTANCE_MATRIX.length <= 2) {
+            SEQUENCED_ROUTE = new ArrayList<>(Arrays.asList(1,0,1));
+            return;
+        }
         // Run the solver
         int state = 1 << START_INDEX;
 

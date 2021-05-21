@@ -38,7 +38,7 @@
     <string name="arrived">ARRIVED</string>
     <string name="note_press_start_route_when_you_are_seated_in_your_vehicle_and_ready_to_depart">NOTE: PRESS START ROUTE WHEN YOU ARE SEATED IN YOUR VEHICLE AND READY TO DEPART</string>
     <string name="mapicon">map icon</string>
-    <string name="getting_location">GETTING LOCATION....</string>
+    <string name="getting_location">… Please Wait …</string>
     <string name="check_mark">check_mark</string>
     <string name="dismiss">dismiss</string>
     <string name="recalibrate_address">Recalibrate Address</string>
@@ -86,4 +86,15 @@
     <string name="no">NO</string>
     <string name="this_will_affect_your_performance_score">(This will affect your performance score)</string>
     <string name="mycontinue">CONTINUE</string>
+    <string name="re_enter_password">RE-ENTER PASSWORD</string>
+    <string name="please_enter_a_new_password">PLEASE ENTER A NEW PASSWORD</string>
+    <string name="signature">SIGNATURE</string>
+    <string name="clear">clear</string>
+    <string name="erase">erase</string>
+    <string name="collapse_expand">collapse/expand</string>
+    <string name="time_started">Time Started:</string>
+    <string name="time_ended">Time Ended:</string>
+    <string name="did_not_arrive_at_location">** Did Not Arrive at Location **</string>
+    <string name="show_documents">Show Documents</string>
+    <string name="logout">LOGOUT</string>
 </resources>

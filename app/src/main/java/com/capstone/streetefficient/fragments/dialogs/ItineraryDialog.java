@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ItineraryDialog extends DialogFragment {
 
-    private static final long AUTO_DISMISS_MILLIS = 5000;
+    private static final long AUTO_DISMISS_MILLIS = 9000;
     ItineraryDialogListener listener;
 
     private CountDownTimer countDownTimer;
@@ -54,10 +54,9 @@ public class ItineraryDialog extends DialogFragment {
 
         for (int i = 0; i < sequencedRoute.size(); i++) {
 
-            if (i < sequencedRoute.size() - 1) {
-                distance += PhysicsFunctions.getDistance(latLngs[sequencedRoute.get(i)], latLngs[sequencedRoute.get(i + 1)]);
-            }
-            location = location.concat((i + 1) + ". " + Utilities.getAddress(sequencedRoute.get(i))) + "\n" + "\n";
+            if (i < sequencedRoute.size() - 1) distance += PhysicsFunctions.getDistance(latLngs[sequencedRoute.get(i)], latLngs[sequencedRoute.get(i + 1)]);
+
+            location = location.concat((i+1) + ". " + Utilities.getAddress(sequencedRoute.get(i))) + "\n" + "\n";
 
         }
 

@@ -1,8 +1,9 @@
 package com.capstone.streetefficient.models;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class RouteDetail {
+public class RouteDetail implements Serializable {
 
     private Date date;
     private String route_detail_id;
@@ -16,6 +17,7 @@ public class RouteDetail {
     private double act_duration;
 
     public RouteDetail() {
+
     }
 
     public RouteDetail(Date date, String route_detail_id, String route_header_id, String origin_item_number,

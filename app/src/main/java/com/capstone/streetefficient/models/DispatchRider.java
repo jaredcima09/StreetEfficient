@@ -6,6 +6,7 @@ public class DispatchRider {
     private String actualAssessment;
     private String address;
     private Date birthdate;
+    private String branch;
     private String cR;
     private String contactNumber;
     private String courier_id;
@@ -26,6 +27,32 @@ public class DispatchRider {
     private String writtenExam;
 
     public DispatchRider() {
+    }
+
+    public DispatchRider(String actualAssessment, String address, Date birthdate, String branch, String cR, String contactNumber, String courier_id, String designateBarangay, String email,
+                         String emerg_number, String encoded_by, String fname, String gender, String id, String license, String lname, String mname, String oR, String password, String status, String vehicle_type, String writtenExam) {
+        this.actualAssessment = actualAssessment;
+        this.address = address;
+        this.birthdate = birthdate;
+        this.branch = branch;
+        this.cR = cR;
+        this.contactNumber = contactNumber;
+        this.courier_id = courier_id;
+        this.designateBarangay = designateBarangay;
+        this.email = email;
+        this.emerg_number = emerg_number;
+        this.encoded_by = encoded_by;
+        this.fname = fname;
+        this.gender = gender;
+        this.id = id;
+        this.license = license;
+        this.lname = lname;
+        this.mname = mname;
+        this.oR = oR;
+        this.password = password;
+        this.status = status;
+        this.vehicle_type = vehicle_type;
+        this.writtenExam = writtenExam;
     }
 
     public String getActualAssessment() {
@@ -50,6 +77,14 @@ public class DispatchRider {
 
     public void setBirthdate(Date birthdate) {
         this.birthdate = birthdate;
+    }
+
+    public String getBranch() {
+        return branch;
+    }
+
+    public void setBranch(String branch) {
+        this.branch = branch;
     }
 
     public String getcR() {
@@ -194,5 +229,33 @@ public class DispatchRider {
 
     public void setWrittenExam(String writtenExam) {
         this.writtenExam = writtenExam;
+    }
+
+    @Override
+    public String toString() {
+        return "DispatchRider{" +
+                "actualAssessment='" + actualAssessment + '\'' +
+                ", address='" + address + '\'' +
+                ", birthdate=" + birthdate +
+                ", branch='" + branch + '\'' +
+                ", cR='" + cR + '\'' +
+                ", contactNumber='" + contactNumber + '\'' +
+                ", courier_id='" + courier_id + '\'' +
+                ", designateBarangay='" + designateBarangay + '\'' +
+                ", email='" + email + '\'' +
+                ", emerg_number='" + emerg_number + '\'' +
+                ", encoded_by='" + encoded_by + '\'' +
+                ", fname='" + fname + '\'' +
+                ", gender='" + gender + '\'' +
+                ", id='" + id + '\'' +
+                ", license='" + license + '\'' +
+                ", lname='" + lname + '\'' +
+                ", mname='" + mname + '\'' +
+                ", oR='" + oR + '\'' +
+                ", password='" + password + '\'' +
+                ", status='" + status + '\'' +
+                ", vehicle_type='" + vehicle_type + '\'' +
+                ", writtenExam='" + writtenExam + '\'' +
+                '}';
     }
 }

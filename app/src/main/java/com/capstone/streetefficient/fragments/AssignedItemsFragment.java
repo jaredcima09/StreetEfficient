@@ -1,50 +1,56 @@
 package com.capstone.streetefficient.fragments;
 
 import android.Manifest;
-import android.os.Bundle;
 import android.app.Activity;
 import android.content.Intent;
-import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.os.Looper;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import androidx.core.app.ActivityCompat;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
-
-import android.os.Looper;
-import android.view.View;
-import android.widget.Toast;
-import android.view.ViewGroup;
-import android.widget.TextView;
-import android.view.LayoutInflater;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.capstone.streetefficient.AddItem;
-import com.capstone.streetefficient.functions.Utilities;
-import com.google.gson.Gson;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.capstone.streetefficient.R;
 import com.capstone.streetefficient.ReviewItem;
-import com.capstone.streetefficient.models.Item;
 import com.capstone.streetefficient.SequencedRoute;
 import com.capstone.streetefficient.adapters.ItemAdapter;
-import com.capstone.streetefficient.singletons.AssignedItemsHelper;
 import com.capstone.streetefficient.fragments.dialogs.GettingLocationDialog;
+import com.capstone.streetefficient.functions.Utilities;
+import com.capstone.streetefficient.models.DeliveryHeader;
+import com.capstone.streetefficient.models.Item;
+import com.capstone.streetefficient.singletons.AssignedItemsHelper;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentChange;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.gson.Gson;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Objects;
+
+import static android.content.Context.MODE_PRIVATE;
 
 
 public class AssignedItemsFragment extends Fragment {
@@ -52,20 +58,19 @@ public class AssignedItemsFragment extends Fragment {
     private static final int SCAN_BARCODE = 1;
     private static final int REQUEST_REVIEW = 2;
 
-
     private int mPosition;
     private boolean isOpen = true;
     private boolean clickedSequenced = false;
 
-
     private ItemAdapter mAdapter;
     private LocationCallback locationCallback;
+    private ListenerRegistration registration;
     private AssignedItemsHelper assignedItemsHelper;
     private GettingLocationDialog gettingLocationDialog;
     private FusedLocationProviderClient fusedLocationClient;
     private FloatingActionButton fab_main, fab_1, fab_2, fab_3;
     private Animation fab_open, fab_close, fab_clock, fab_anticlock;
-    private TextView TotalItems, TotalWeight, Fab1TextView, Fab2TextView, Fab3TextView;
+    private TextView TotalItems, TotalWeight, Fab1TextView, Fab2TextView, Fab3TextView, Date;
 
 
     @Nullable
@@ -80,6 +85,7 @@ public class AssignedItemsFragment extends Fragment {
         fab_2 = v.findViewById(R.id.fab_2);
         fab_3 = v.findViewById(R.id.fab_3);
         fab_main = v.findViewById(R.id.fab_main);
+        Date = v.findViewById(R.id.assigned_date);
         Fab1TextView = v.findViewById(R.id.fab_1_textview);
         Fab2TextView = v.findViewById(R.id.fab_2_textview);
         Fab3TextView = v.findViewById(R.id.fab_3_textview);
@@ -90,11 +96,9 @@ public class AssignedItemsFragment extends Fragment {
         fab_clock = AnimationUtils.loadAnimation(getActivity(), R.anim.fab_rotate_clock);
         fab_anticlock = AnimationUtils.loadAnimation(getActivity(), R.anim.fab_rotate_anticlock);
 
-        TextView Date = v.findViewById(R.id.assigned_date);
+
         RecyclerView recyclerView = v.findViewById(R.id.items_recycler);
 
-        refreshDetails();
-        Date.setText(Utilities.getSimpleDate(new Date()));
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         mAdapter = new ItemAdapter(assignedItemsHelper.getAllItems());
@@ -124,25 +128,32 @@ public class AssignedItemsFragment extends Fragment {
             @Override
             public void onLocationResult(@NonNull LocationResult locationResult) {
                 super.onLocationResult(locationResult);
-                assignedItemsHelper.setLastIndex(new LatLng(locationResult.getLocations().get(0).getLatitude(),
-                        locationResult.getLocations().get(0).getLongitude()));
+                assignedItemsHelper.setLastIndex(new LatLng(locationResult.getLocations().get(0).getLatitude(), locationResult.getLocations().get(0).getLongitude()));
                 fusedLocationClient.removeLocationUpdates(locationCallback);
                 gettingLocationDialog.dismiss();
                 if (clickedSequenced) intentToSequence();
+                System.out.println(Arrays.toString(AssignedItemsHelper.getInstance().getLatLngs()));
             }
         };
 
+        //swipeRefreshLayout.setOnRefreshListener(this);
         saveData();
+        refreshDetails();
+
+
         return v;
     }
 
     private void refreshDetails() {
+        assignedItemsHelper = AssignedItemsHelper.getInstance();
+        Date.setText(Utilities.getSimpleDate(new Date()));
+        String weight = "TOTAL WEIGHT: " + ((int) Utilities.assignedWeight(assignedItemsHelper.getAllItems()) + " kg");
         String totalItems = "TOTAL ITEMS: " + assignedItemsHelper.getAllItems().size();
-        String weight = "TOTAL WEIGHT: " + (Utilities.assignedWeight(assignedItemsHelper.getAllItems()));
-
-        TotalWeight.setText(weight);
         TotalItems.setText(totalItems);
-
+        TotalWeight.setText(weight);
+        System.out.println("DEL HEADERS: " + assignedItemsHelper.getDeliveryHeaders());
+        System.out.println("ITEMS: " + assignedItemsHelper.getAllItems());
+        System.out.println("LAT LNGS" + Arrays.toString(assignedItemsHelper.getLatLngs()));
     }
 
     private final View.OnClickListener fab3Click = v -> startLocationUpdates();
@@ -159,14 +170,13 @@ public class AssignedItemsFragment extends Fragment {
         }
 
         if (requestCode == SCAN_BARCODE && resultCode == Activity.RESULT_OK && data != null) {
-            Toast.makeText(getActivity(), "SALHD", Toast.LENGTH_SHORT).show();
             ArrayList<Item> items = (ArrayList<Item>) data.getSerializableExtra("items");
-
             assignedItemsHelper.addItems(items);
             mAdapter.notifyDataSetChanged();
             refreshDetails();
-
         }
+
+        saveData();
     }
 
     @Override
@@ -183,7 +193,7 @@ public class AssignedItemsFragment extends Fragment {
         LocationRequest locationRequest = LocationRequest.create();
         locationRequest.setInterval(1000);
         locationRequest.setFastestInterval(500);
-        locationRequest.setSmallestDisplacement(1);
+        //locationRequest.setSmallestDisplacement(1);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
 
@@ -201,19 +211,19 @@ public class AssignedItemsFragment extends Fragment {
         if (isOpen) {
             Fab1TextView.setVisibility(View.VISIBLE);
             Fab2TextView.setVisibility(View.VISIBLE);
-            Fab3TextView.setVisibility(View.VISIBLE);
+            //Fab3TextView.setVisibility(View.VISIBLE);
             fab_1.startAnimation(fab_open);
             fab_2.startAnimation(fab_open);
-            fab_3.startAnimation(fab_open);
+            //fab_3.startAnimation(fab_open);
             fab_main.startAnimation(fab_clock);
             isOpen = false;
         } else {
             Fab1TextView.setVisibility(View.INVISIBLE);
             Fab2TextView.setVisibility(View.INVISIBLE);
-            Fab3TextView.setVisibility(View.INVISIBLE);
+            //Fab3TextView.setVisibility(View.INVISIBLE);
             fab_1.startAnimation(fab_close);
             fab_2.startAnimation(fab_close);
-            fab_3.startAnimation(fab_close);
+            //fab_3.startAnimation(fab_close);
             fab_main.startAnimation(fab_anticlock);
             isOpen = true;
         }
@@ -222,12 +232,14 @@ public class AssignedItemsFragment extends Fragment {
     private final View.OnClickListener fab1Click = v -> {
 
         Intent intent = new Intent(getActivity(), AddItem.class);
+        intent.putExtra("fromSequencedRoute", false);
         startActivityForResult(intent, SCAN_BARCODE);
     };
 
     private final View.OnClickListener fab2Click = v -> {
-        if(assignedItemsHelper.getAllItems().isEmpty() || assignedItemsHelper.getLatLngs() == null) return;
-
+        if (assignedItemsHelper.getAllItems().isEmpty() || assignedItemsHelper.getLatLngs() == null) {
+            return;
+        }
         for (int i = 0; i < assignedItemsHelper.getLatLngs().length - 1; i++) {
             if (assignedItemsHelper.getLatLngAtPosition(i) == null) {
                 Toast.makeText(getActivity(), "ITEM " + (i + 1) + " : NOT REVIEWED", Toast.LENGTH_SHORT).show();
@@ -243,13 +255,20 @@ public class AssignedItemsFragment extends Fragment {
     };
 
     private void intentToSequence() {
+
+        if (assignedItemsHelper.getLatLngAtPosition(assignedItemsHelper.indexOfWarehouse()) == null) {
+            Toast.makeText(getActivity(), "Please wait", Toast.LENGTH_SHORT).show();
+            startLocationUpdates();
+            return;
+        }
+        saveData();
         Intent intent = new Intent(getActivity(), SequencedRoute.class);
         startActivity(intent);
         requireActivity().finish();
     }
 
     private void saveData() {
-        SharedPreferences mprefs = requireActivity().getSharedPreferences(String.valueOf(R.string.app_name), Context.MODE_PRIVATE);
+        SharedPreferences mprefs = requireActivity().getSharedPreferences(String.valueOf(R.string.app_name), MODE_PRIVATE);
         SharedPreferences.Editor prefsEditor = mprefs.edit();
         Gson gson = new Gson();
         String json = gson.toJson(AssignedItemsHelper.getInstance());
@@ -261,7 +280,40 @@ public class AssignedItemsFragment extends Fragment {
     public void onStop() {
         super.onStop();
         saveData();
+        if (registration != null) registration.remove();
+
     }
 
+    @Override
+    public void onStart() {
+        super.onStart();
+        SharedPreferences mPrefs = requireActivity().getSharedPreferences(String.valueOf(R.string.app_name), MODE_PRIVATE);
+        boolean sameDate = mPrefs.getBoolean("sameDate", false);
 
+        if (sameDate) return;
+        registration = FirebaseFirestore.getInstance().collection("Delivery_Header")
+                .addSnapshotListener((value, error) -> {
+                            if (value == null) return;
+                            for (DocumentChange change : value.getDocumentChanges()) {
+
+                                DeliveryHeader header = change.getDocument().toObject(DeliveryHeader.class);
+
+
+                                if (change.getType().equals(DocumentChange.Type.ADDED)) {
+                                    if (assignedItemsHelper.containsHeader(header.getItem_id())) return;
+                                    if (header.getRider_id().equals(Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getUid())
+                                            && header.getDel_date_sched_string().equals(Utilities.getSimpleDate(new Date()))) {
+                                        FirebaseFirestore.getInstance().collection("Items").document(header.getItem_id()).get().addOnSuccessListener(documentSnapshot -> {
+                                            Item item = documentSnapshot.toObject(Item.class);
+                                            assignedItemsHelper.addItemHeader(item, header);
+                                            mAdapter.notifyDataSetChanged();
+                                            refreshDetails();
+                                        });
+                                    }
+                                }
+
+                            }
+                        }
+                );
+    }
 }

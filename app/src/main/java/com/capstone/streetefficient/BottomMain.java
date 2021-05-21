@@ -12,6 +12,7 @@ import android.widget.Toast;
 import com.capstone.streetefficient.fragments.AssignedItemsFragment;
 import com.capstone.streetefficient.fragments.PerformanceFragment;
 import com.capstone.streetefficient.fragments.ProfileFragment;
+import com.capstone.streetefficient.singletons.DriverDetails;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.util.ArrayDeque;
@@ -29,7 +30,7 @@ public class BottomMain extends AppCompatActivity implements BottomNavigationVie
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bottom_main);
-
+        DriverDetails.getInstance();
         integerDeque = new ArrayDeque<>(3);
         integerDeque.push(R.id.nav_list);
         loadFragment(fMain = new AssignedItemsFragment());

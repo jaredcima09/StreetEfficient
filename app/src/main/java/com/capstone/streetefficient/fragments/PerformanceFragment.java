@@ -1,5 +1,6 @@
 package com.capstone.streetefficient.fragments;
 
+
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,8 +22,10 @@ import com.capstone.streetefficient.functions.Utilities;
 import com.capstone.streetefficient.models.Performance;
 import com.capstone.streetefficient.models.RouteHeader;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+
 
 public class PerformanceFragment extends Fragment implements CalendarDialog.CalendarDialogListener {
 
@@ -80,9 +83,7 @@ public class PerformanceFragment extends Fragment implements CalendarDialog.Cale
                         adapter = new RouteDetailAdapter(queryDocumentSnapshots1);
                         RecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
                         RecyclerView.setAdapter(adapter);
-                    }).addOnFailureListener(e -> {
-                        Toast.makeText(getActivity(), "" + e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
-                    });
+                    }).addOnFailureListener(e -> Toast.makeText(getActivity(), "" + e.getLocalizedMessage(), Toast.LENGTH_SHORT).show());
                 });
     }
 
@@ -95,7 +96,7 @@ public class PerformanceFragment extends Fragment implements CalendarDialog.Cale
 //        FirestoreRecyclerOptions<RouteHeader> options = new FirestoreRecyclerOptions.Builder<RouteHeader>()
 //                .setQuery(query, RouteHeader.class)
 //                .build();
-////
+//
 //        adapter = new RouteHeaderAdapter(options);
 //        RecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
 //        RecyclerView.setAdapter(adapter);
@@ -117,7 +118,27 @@ public class PerformanceFragment extends Fragment implements CalendarDialog.Cale
 
                     OverallScore.append(Utilities.assessScore(performance.getAverage_score()));
                     AverageSpeed.append(Utilities.assessSpeed(performance.getAverage_speed()));
+                    getScoreQuality(performance.getAverage_score());
 
+                });
+
+        FirebaseFirestore.getInstance().collection("Route_Header").whereEqualTo("rider_id", FirebaseAuth.getInstance().getCurrentUser().getUid()).get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+
+                    double yesCounter = 0;
+                    for (DocumentSnapshot snapshot : queryDocumentSnapshots) {
+                        RouteHeader header = snapshot.toObject(RouteHeader.class);
+                        if(header == null) return;
+
+                        if (header.isFollowed_route()) ++yesCounter;
+                    }
+                    if (yesCounter == 0) {
+                        FollowRoute.append("0%");
+                        return;
+                    }
+
+                    double followPercent = (yesCounter / queryDocumentSnapshots.size() * 100);
+                    FollowRoute.append("\n" + followPercent + "%");
                 });
     }
 
@@ -136,4 +157,25 @@ public class PerformanceFragment extends Fragment implements CalendarDialog.Cale
         Toast.makeText(getActivity(), date, Toast.LENGTH_SHORT).show();
         getHeader(date);
     }
+
+    private void getScoreQuality(Double score) {
+        if (score >= 81) {
+            OverallScore.append(" - Excellent");
+            return;
+        }
+        if (score >= 61) {
+            OverallScore.append(" - Above Average");
+            return;
+        }
+        if (score >= 41) {
+            OverallScore.append(" - Average");
+            return;
+        }
+        if (score >= 21) {
+            OverallScore.append(" - Below Average");
+            return;
+        }
+        OverallScore.append(" - Poor");
+    }
+
 }

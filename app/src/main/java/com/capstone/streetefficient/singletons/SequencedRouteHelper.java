@@ -1,42 +1,42 @@
 package com.capstone.streetefficient.singletons;
 
-import com.capstone.streetefficient.fragments.BreakdownFragment;
 import com.capstone.streetefficient.models.ItemLocationMarker;
 import com.capstone.streetefficient.models.RouteDetail;
+import com.capstone.streetefficient.models.ScoreBreakdown;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 
 public class SequencedRouteHelper {
 
-
     private static SequencedRouteHelper instance;
-    private ArrayList<Integer> routeTaken = new ArrayList<>();
-    private ArrayList<Integer> sequencedRoute = new ArrayList<>();
-    private ArrayList<Integer> routeCheck = new ArrayList<>();
-    private ArrayList<RouteDetail> routeDetails = new ArrayList<>();
-    private final ArrayList<BreakdownFragment> breakdownFragments = new ArrayList<>();
+
+    private final ArrayList<ScoreBreakdown> scoreBreakdowns = new ArrayList<>();
     private ArrayList<ItemLocationMarker> mClusterMarkers = new ArrayList<>();
+    private ArrayList<RouteDetail> routeDetails = new ArrayList<>();
+    private ArrayList<Integer> sequencedRoute = new ArrayList<>();
+    private ArrayList<Integer> routeTaken = new ArrayList<>();
+    private ArrayList<Integer> routeCheck = new ArrayList<>();
+    private final HashMap<String, LatLng> getSpeed = new HashMap<>();
+
+    private boolean routeStarted = false;
+    private boolean isInitial = true;
+
+    private double initialDeliveryTime = 0;
+    private double stopDeliveryTime;
+    private double destinationTime;
+
     private String routeHeaderID = "";
-    private double totalDeliveryTime;
+    private LatLng RIDER_LATLNG;
+    private LatLng marker;
+    private Date date;
 
     private SequencedRouteHelper() {
 
-    }
-
-    public double getTotalDeliveryTime() {
-        return totalDeliveryTime;
-    }
-
-    public void setTotalDeliveryTime(double fromActivityTimeStarted) {
-        totalDeliveryTime = System.currentTimeMillis() - fromActivityTimeStarted;
-    }
-
-    public String getRouteHeaderID() {
-        if (routeHeaderID.isEmpty())
-            routeHeaderID = FirebaseFirestore.getInstance().collection("Route_Header").document().getId();
-
-        return routeHeaderID;
     }
 
     public static SequencedRouteHelper getInstance() {
@@ -44,6 +44,90 @@ public class SequencedRouteHelper {
             instance = new SequencedRouteHelper();
         }
         return instance;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
+    }
+
+    public Date getDate() {
+        if(date == null) return new Date();
+        return date;
+    }
+
+    public HashMap<String, LatLng> getGetSpeed() {
+        return getSpeed;
+    }
+
+    public void addGetSpeed(String time, LatLng latLng) {
+        getSpeed.put(time, latLng);
+    }
+
+    public double getInitialDeliveryTime() {
+        return initialDeliveryTime;
+    }
+
+    public void setStopDeliveryTime() {
+        this.stopDeliveryTime = System.currentTimeMillis();
+    }
+
+    public double getStopDeliveryTime() {
+        return stopDeliveryTime;
+    }
+
+    public void setRiderLatlng(LatLng mMarker) {
+        marker = mMarker;
+    }
+
+    public LatLng getMarker() {
+        return marker;
+    }
+
+    public void setRIDER_LATLNG(LatLng RIDER_LATLNG) {
+        this.RIDER_LATLNG = RIDER_LATLNG;
+    }
+
+    public LatLng getRIDER_LATLNG() {
+        return RIDER_LATLNG;
+    }
+
+    public boolean isRouteStarted() {
+        return routeStarted;
+    }
+
+    public void setRouteStarted(boolean routeStarted) {
+        this.routeStarted = routeStarted;
+    }
+
+    public void setDestinationTime(double destinationTime) {
+        this.destinationTime = destinationTime;
+    }
+
+    public double getDestinationTime() {
+        return destinationTime;
+    }
+
+    public double getTotalDeliveryTime() {
+        return stopDeliveryTime - initialDeliveryTime;
+    }
+
+    public void setInitialDeliveryTime() {
+        if (initialDeliveryTime == 0)
+            initialDeliveryTime = System.currentTimeMillis();
+    }
+
+    public void setInitial(boolean initial) {
+        isInitial = initial;
+    }
+
+    public boolean isInitial() {
+        return isInitial;
+    }
+
+    public String getRouteHeaderID() {
+        if (routeHeaderID.isEmpty())
+            routeHeaderID = FirebaseFirestore.getInstance().collection("Route_Header").document().getId();
+        return routeHeaderID;
     }
 
     public void setRouteCheck(ArrayList<Integer> fromActivity) {
@@ -94,11 +178,16 @@ public class SequencedRouteHelper {
         this.routeTaken = routeTaken;
     }
 
-    public void addBreakdownFragment(BreakdownFragment breakdownFragment) {
-        breakdownFragments.add(breakdownFragment);
+    public void addScoreBreakdown(ScoreBreakdown scoreBreakdown) {
+        scoreBreakdowns.add(scoreBreakdown);
     }
 
-    public ArrayList<BreakdownFragment> getBreakdownFragments() {
-        return breakdownFragments;
+    public ArrayList<ScoreBreakdown> getScoreBreakdown() {
+        return scoreBreakdowns;
     }
+
+    public void reset() {
+        instance = null;
+    }
+
 }

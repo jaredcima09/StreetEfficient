@@ -28,14 +28,10 @@ public class UnsuccessfulDialog extends DialogFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater inflater = getActivity().getLayoutInflater();
         View v = inflater.inflate(R.layout.dialog_unsucessful, null);
-
         CardView returnSender = v.findViewById(R.id.return_sender);
         CardView returnWarehouse = v.findViewById(R.id.return_warehouse);
-
-
         returnSender.setOnClickListener(returnSenderClick);
         returnWarehouse.setOnClickListener(returnWarehouseClick);
-
         builder.setView(v);
         AlertDialog dialog = builder.create();
         dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));

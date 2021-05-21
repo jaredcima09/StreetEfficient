@@ -17,21 +17,30 @@ import android.graphics.Color;
 import android.content.Intent;
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.telephony.SmsManager;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.ColorDrawable;
+import android.widget.Toast;
 
-import com.capstone.streetefficient.fragments.BreakdownFragment;
+import com.capstone.streetefficient.fragments.dialogs.GettingLocationDialog;
 import com.capstone.streetefficient.fragments.dialogs.ItineraryDialog;
 import com.capstone.streetefficient.fragments.dialogs.NotNextDialog;
 import com.capstone.streetefficient.functions.PhysicsFunctions;
 import com.capstone.streetefficient.functions.Utilities;
+import com.capstone.streetefficient.models.DispatchRider;
+import com.capstone.streetefficient.models.RiderPosition;
 import com.capstone.streetefficient.models.RouteDetail;
+import com.capstone.streetefficient.models.ScoreBreakdown;
+import com.capstone.streetefficient.singletons.DriverDetails;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.GeoPoint;
+import com.google.firebase.firestore.SetOptions;
 import com.google.gson.Gson;
 import com.google.maps.GeoApiContext;
 import com.google.maps.PendingResult;
@@ -73,8 +82,11 @@ import com.capstone.streetefficient.functions.ClusterManagerRenderer;
 import com.capstone.streetefficient.fragments.dialogs.BottomSheetDialog;
 import com.google.maps.model.TravelMode;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -83,134 +95,118 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
 
 
     private static final int REQUEST_ARRIVED = 1;
+    private static final int REQUEST_ADD_ITEM = 2;
 
     //GOOGLE MAPS VARIABLES
     private Marker mMarker;
-    private GoogleMap googleMap;
+    private GoogleMap mGoogleMap;
     private GeoApiContext mGeoAPi;
     private LocationCallback locationCallback;
     private FusedLocationProviderClient fusedLocationClient;
 
-    private ArrayList<ArrayList<Polyline>> arrayListOfPolyLines;
     private ClusterManager<ItemLocationMarker> manager;
     private ArrayList<ItemLocationMarker> mClusterMarkers;
-
+    private ArrayList<ArrayList<Polyline>> arrayListOfPolyLines;
 
     /*ACTIVITY VARIABLES*/
-    private double startDeliveryTime;
-    private double startDestinationTime;
-    private double totalDestinationTime;
-
-    private int ARRIVED_INDEX;
-    private int NEXT_LOCATION;
-    private int CURRENT_LOCATION;
-
-
-    private boolean isInitial = true;
-    private boolean routeStarted = false;
     private boolean isSequenced;
+    private double totalDestinationTime;
+    private int ARRIVED_INDEX, NEXT_LOCATION, CURRENT_LOCATION;
 
-    private LatLng RIDER_LATLNG, MOVING_LATLNG;
-
-    private LatLng[] latLngs;
-    private ArrayList<Integer> routeTaken;
-    private ArrayList<Integer> sequencedRoute;
-
-    private SharedPreferences mprefs;
     private LinearLayout layout;
+    private LatLng MOVING_LATLNG;
+    private SharedPreferences mprefs;
+    private SwitchMaterial switchMaterial;
     private AssignedItemsHelper assignedItemsHelper;
     private SequencedRouteHelper sequencedRouteHelper;
-
-
-    private String routeHeaderID;
-
-    private FloatingActionButton fabMain, fabNotNext;
-
-    private SwitchMaterial switchMaterial;
+    private ArrayList<Integer> routeTaken, sequencedRoute;
+    private ArrayList<String> phoneNumbers;
+    private FloatingActionButton fabMain, fabNotNext, fabAddItem;
+    private DriverDetails driverDetails;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sequenced_route);
+        View decorView = getWindow().getDecorView();
+        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView.setSystemUiVisibility(uiOptions);
 
         fabMain = findViewById(R.id.fab_main);
+        fabAddItem = findViewById(R.id.fab_add);
         fabNotNext = findViewById(R.id.fab_not_next);
         layout = findViewById(R.id.sequenced_progress);
         switchMaterial = findViewById(R.id.sequence_switch);
-
+        switchMaterial.setChecked(true);
 
         arrayListOfPolyLines = new ArrayList<>();
 
-        //routeHeaderRef = FirebaseFirestore.getInstance().collection("Route_Header").document();
-
-
         mprefs = getSharedPreferences(String.valueOf(R.string.app_name), Context.MODE_PRIVATE);
-        isSequenced = false;
-        //isSequenced = mprefs.getBoolean("isSequenced", false);
-
+        //isSequenced = false;
+        isSequenced = mprefs.getBoolean("isSequenced", false);
 
         if (isSequenced) {
-            Gson gson = new Gson();
-            sequencedRouteHelper = gson.fromJson(mprefs.getString("sequencedRouteHelper", null), SequencedRouteHelper.class);
-            sequencedRouteHelper.setInstance(sequencedRouteHelper);
-        }
+            layout.setVisibility(View.GONE);
 
+            Gson gson = new Gson();
+            assignedItemsHelper = gson.fromJson(mprefs.getString("assignedItemsHelper", null), AssignedItemsHelper.class);
+            sequencedRouteHelper = gson.fromJson(mprefs.getString("sequencedRouteHelper", null), SequencedRouteHelper.class);
+            driverDetails = gson.fromJson(mprefs.getString("driverDetails", null), DriverDetails.class);
+
+            assignedItemsHelper.setInstance(assignedItemsHelper);
+            sequencedRouteHelper.setInstance(sequencedRouteHelper);
+            driverDetails.setInstance(driverDetails);
+        }
+        driverDetails = DriverDetails.getInstance();
         assignedItemsHelper = AssignedItemsHelper.getInstance();
         sequencedRouteHelper = SequencedRouteHelper.getInstance();
-
-        latLngs = assignedItemsHelper.getLatLngs();
-        routeHeaderID = sequencedRouteHelper.getRouteHeaderID();
-
-
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        mGeoAPi = new GeoApiContext.Builder().apiKey("AIzaSyBix41E07hr6sjO3AkK2AKQewf4tP-SrmE").build();
 
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         assert mapFragment != null;
         mapFragment.getMapAsync(this);
-
-        mGeoAPi = new GeoApiContext.Builder()
-                .apiKey("AIzaSyBix41E07hr6sjO3AkK2AKQewf4tP-SrmE")
-                .build();
-
 
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(@NonNull LocationResult locationResult) {
                 super.onLocationResult(locationResult);
                 MOVING_LATLNG = new LatLng(locationResult.getLocations().get(0).getLatitude(), locationResult.getLocations().get(0).getLongitude());
+                startDirections(MOVING_LATLNG, assignedItemsHelper.getLatLngAtPosition(NEXT_LOCATION), false);
                 mMarker.setPosition(MOVING_LATLNG);
-                startDirections(MOVING_LATLNG, NEXT_LOCATION, false);
+                updatePosition(true);
+                sequencedRouteHelper.addGetSpeed(String.valueOf(System.currentTimeMillis()) , MOVING_LATLNG);
 
-                if (!routeStarted) {
+                if (!sequencedRouteHelper.isRouteStarted()) {
 
-                    if (isInitial) {
-                        isInitial = false;
-                        startDeliveryTime = System.currentTimeMillis();
+                    if (sequencedRouteHelper.isInitial()) {
+                        fabAddItem.setVisibility(View.GONE);
+                        sequencedRouteHelper.setInitial(false);
+                        sequencedRouteHelper.setInitialDeliveryTime();
                         new ReadyDialog().show(getSupportFragmentManager(), "Ready");
                     }
 
-                    startDestinationTime = System.currentTimeMillis();
-                    RIDER_LATLNG = MOVING_LATLNG;
-                    routeStarted = true;
+                    sequencedRouteHelper.setDestinationTime(System.currentTimeMillis());
+                    sequencedRouteHelper.setRIDER_LATLNG(MOVING_LATLNG);
+                    sequencedRouteHelper.setRouteStarted(true);
                 }
 
                 fabNotNext.setVisibility(View.GONE);
                 for (int i = 0; i < sequencedRoute.size(); i++) {
 
-                    if ((haversineFormula(latLngs[sequencedRoute.get(i)], MOVING_LATLNG) * 1000) <= 30
+                    if ((PhysicsFunctions.getDistance(assignedItemsHelper.getLatLngAtPosition(sequencedRoute.get(i)), MOVING_LATLNG) * 1000) <= 30
                             && sequencedRoute.get(i) != CURRENT_LOCATION) {
 
-                        totalDestinationTime = System.currentTimeMillis() - startDestinationTime;
+                        totalDestinationTime = System.currentTimeMillis() - sequencedRouteHelper.getDestinationTime();
                         ARRIVED_INDEX = sequencedRoute.get(i);
-
 
                         if (sequencedRoute.get(i) != NEXT_LOCATION) {
                             fabNotNext.setVisibility(View.VISIBLE);
                             return;
                         }
 
-                        if (sequencedRoute.get(i) == latLngs.length - 1) {
+                        if (sequencedRoute.get(i) == assignedItemsHelper.indexOfWarehouse()) {
+
                             intentArrived();
                             return;
                         }
@@ -218,89 +214,54 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
                         intentArrived();
                     }
                 }
-
-
             }
         };
-
-        fabNotNext.setOnClickListener(v -> new NotNextDialog().show(getSupportFragmentManager(), "notNextDialog"));
+        phoneNumbers = new ArrayList<>();
+        if(sequencedRouteHelper.isInitial())setHistory();
         fabMain.setOnClickListener(fabMainClick);
         switchMaterial.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if(!isChecked) removePolyLines();
+            if (!isChecked) removePolyLines();
         });
+        fabNotNext.setOnClickListener(v -> new NotNextDialog().show(getSupportFragmentManager(), "notNextDialog"));
+        fabAddItem.setOnClickListener(v -> startActivityForResult(new Intent(SequencedRoute.this, AddItem.class)
+                .putExtra("fromSequencedRoute", true), REQUEST_ADD_ITEM));
 
     }
 
+    private void setHistory() {
+        HashMap<String, HashMap<String, LatLng>> hashMapMain = new HashMap<>();
+        HashMap<String, LatLng>map = new HashMap<>();
+        map.put(String.valueOf(System.currentTimeMillis()), assignedItemsHelper.getLatLngOfWarehouse());
+        hashMapMain.put("locations", map);
 
-    private void intentArrived() {
-        DocumentReference routeRef = FirebaseFirestore.getInstance().collection("Route_Detail").document();
-
-        double distance = haversineFormula(RIDER_LATLNG, MOVING_LATLNG);
-        double est = PhysicsFunctions.getEST(distance);
-        double speed = PhysicsFunctions.getSpeed(distance, totalDestinationTime);
-        double scoreTime = PhysicsFunctions.getPercentError(distance, totalDestinationTime, est);
-        double scoreSpeed = PhysicsFunctions.getPercentError(distance, speed, 60);
-        double totalScore = PhysicsFunctions.getTotalScore(scoreSpeed, scoreTime);
-
-        sequencedRouteHelper.addRouteDetail(new RouteDetail(new Date(), routeRef.getId(), routeHeaderID, Utilities.getItemID(CURRENT_LOCATION),
-                Utilities.getItemID(ARRIVED_INDEX), totalScore, speed, est, totalDestinationTime, distance));
-
-        sequencedRouteHelper.addBreakdownFragment(new BreakdownFragment(totalDestinationTime, Utilities.getAddress(ARRIVED_INDEX), Utilities.roundOff(distance) + "KM", est,
-                Utilities.getAddress(CURRENT_LOCATION), routeRef.getId(), scoreSpeed, scoreTime, speed, totalScore));
-
-
-        Intent intent;
-        if (ARRIVED_INDEX != latLngs.length - 1) {
-
-            intent = new Intent(SequencedRoute.this, ArrivedLocation.class);
-            intent.putExtra("destination", ARRIVED_INDEX);
-            startActivityForResult(intent, REQUEST_ARRIVED);
-            return;
-
-        }
-
-
-        routeTaken.add(CURRENT_LOCATION);
-        routeTaken.add(ARRIVED_INDEX);
-
-        sequencedRoute.remove((Integer) ARRIVED_INDEX);
-        sequencedRoute.remove((Integer) CURRENT_LOCATION);
-
-
-
-        sequencedRouteHelper.setTotalDeliveryTime(startDeliveryTime);
-        startActivity(new Intent(this, FinishedRoute.class));
-        finish();
+        FirebaseFirestore.getInstance().collection("Dispatch Riders").document(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                .collection("history").document(Utilities.getSimpleDate(new Date()))
+                .set(hashMapMain);
     }
-
-    private void startTrip() {
-        removePolyLines();
-        routeStarted = false;
-        startLocationUpdates();
-        startDirections(latLngs[CURRENT_LOCATION], NEXT_LOCATION, false);
-    }
-
-    private final View.OnClickListener fabMainClick = v -> {
-        fabMain.setEnabled(false);
-        if (isInitial) new ItineraryDialog().show(getSupportFragmentManager(), "ItineraryDialog");
-        else
-            new PopUpDialog(haversineFormula(latLngs[CURRENT_LOCATION], latLngs[NEXT_LOCATION]), NEXT_LOCATION).show(getSupportFragmentManager(), "popup");
-        fabMain.setEnabled(true);
-    };
 
     @Override
-    public void onMapReady(GoogleMap googleMap) {
+    public void startRoute() {
+        startTrip();
+    }
 
-        this.googleMap = googleMap;
-        this.googleMap.getUiSettings().setMapToolbarEnabled(false);
-        mMarker = googleMap.addMarker(new MarkerOptions().position(latLngs[latLngs.length - 1]).icon(setMarkerIcon(R.drawable.helmet)).zIndex(1));
-        this.googleMap.addMarker(new MarkerOptions().position(latLngs[latLngs.length - 1]).icon(setMarkerIcon(R.drawable.ic_warehouse)));
-        this.googleMap.moveCamera(CameraUpdateFactory.newLatLng(mMarker.getPosition()));
-        manager = new ClusterManager<>(this, this.googleMap);
-        ClusterManagerRenderer mClusterRenderer = new ClusterManagerRenderer(this, this.googleMap, manager);
+    @Override
+    public void notNext(boolean proceed) {
+        if (proceed) intentArrived();
+    }
+
+    @Override
+    public void onMapReady(@NotNull GoogleMap googleMap) {
+
+        mGoogleMap = googleMap;
+        mGoogleMap.getUiSettings().setMapToolbarEnabled(false);
+        mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(10.3157, 123.8854)));
+        mGoogleMap.addMarker(new MarkerOptions().position(assignedItemsHelper.getLatLngOfWarehouse()).icon(setMarkerIcon(R.drawable.ic_warehouse)));
+
+        manager = new ClusterManager<>(this, this.mGoogleMap);
+        ClusterManagerRenderer mClusterRenderer = new ClusterManagerRenderer(this, this.mGoogleMap, manager);
         manager.setRenderer(mClusterRenderer);
 
-        this.googleMap.setOnMarkerClickListener(manager);
+        mGoogleMap.setOnMarkerClickListener(manager);
         manager.setOnClusterItemClickListener(clusterItem -> {
             Item item = assignedItemsHelper.getItemAtPosition(Integer.parseInt(clusterItem.getSnippet()));
             BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(item);
@@ -311,92 +272,262 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
         routeTaken = sequencedRouteHelper.getRouteTaken();
         sequencedRoute = sequencedRouteHelper.getRouteCheck();
         mClusterMarkers = sequencedRouteHelper.getmClusterMarkers();
+        if(sequencedRouteHelper.isInitial()) fabAddItem.setVisibility(View.VISIBLE);
 
 
-        if (!isSequenced) getSequencedRoute();
-        else {
+        if (!isSequenced) {
+            getSequencedRoute();
+
+            CURRENT_LOCATION = assignedItemsHelper.indexOfWarehouse();
+            mMarker = mGoogleMap.addMarker(new MarkerOptions().position(assignedItemsHelper.getLatLngOfWarehouse()).icon(setMarkerIcon(R.drawable.helmet)).zIndex(1));
+
+        } else {
+            mMarker = mGoogleMap.addMarker(new MarkerOptions().position(sequencedRouteHelper.getMarker()).icon(setMarkerIcon(R.drawable.helmet)).zIndex(1));
+            CURRENT_LOCATION = mprefs.getInt("CURRENT_LOCATION", assignedItemsHelper.indexOfWarehouse());
+            if(sequencedRouteHelper.isRouteStarted())startTrip();
             for (ItemLocationMarker marker : mClusterMarkers) {
                 manager.addItem(marker);
                 manager.cluster();
             }
         }
 
-
-        CURRENT_LOCATION = mprefs.getInt("CURRENT_SEQUENCE_INDEX", latLngs.length - 1);
-        NEXT_LOCATION = sequencedRoute.get(0);
-
-        layout.setVisibility(View.GONE);
-        fabMain.setVisibility(View.VISIBLE);
-        switchMaterial.setVisibility(View.VISIBLE);
-
         googleMap.setOnMapLoadedCallback(() -> {
-
+            layout.setVisibility(View.GONE);
+            fabMain.setVisibility(View.VISIBLE);
+            switchMaterial.setVisibility(View.VISIBLE);
             zoomRoute(Arrays.asList(assignedItemsHelper.getLatLngs()));
-            for (int i = 0; i < sequencedRoute.size() - 1; i++) {
-                startDirections(latLngs[sequencedRoute.get(i)], sequencedRoute.get(i + 1), true);
-            }
         });
 
+        NEXT_LOCATION = sequencedRoute.get(0);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_ARRIVED) {
             if (resultCode == RESULT_OK && data != null) {
 
-
-                routeTaken.add(CURRENT_LOCATION);
                 CURRENT_LOCATION = data.getIntExtra("current_location", 0);
-                sequencedRoute.remove((Integer) CURRENT_LOCATION);
+                sequencedRouteHelper.setRouteStarted(false);
+                routeTaken.add(CURRENT_LOCATION);
 
+                sequencedRoute.remove((Integer) CURRENT_LOCATION);
                 NEXT_LOCATION = sequencedRoute.get(0);
 
+                System.out.println("NANAY "+mClusterMarkers);
                 manager.removeItem(mClusterMarkers.get(CURRENT_LOCATION));
+                mClusterMarkers.remove(CURRENT_LOCATION);
+                System.out.println("NANAY "+mClusterMarkers);
                 manager.cluster();
-
                 startTrip();
 
-                //zoomRoute(new ArrayList<>(Arrays.asList(CURRENT_LOCATION, NEXT_LOCATION)));
-            } //else if (resultCode == RESULT_CANCELED) intentArrived();
+                System.out.println("onResult: "+routeTaken);
+                System.out.println("onResult: "+sequencedRoute);
+            }
 
         }
+        if (requestCode == REQUEST_ADD_ITEM) {
+            if (resultCode == RESULT_OK && data != null) {
+                removeMarkers();
 
+                ArrayList<LatLng> latLngsResult = (ArrayList<LatLng>) data.getSerializableExtra("latlngs");
+                ArrayList<Item> items = (ArrayList<Item>) data.getSerializableExtra("items");
+                assignedItemsHelper.addItems(items, latLngsResult);
 
-    }
+                CURRENT_LOCATION = (assignedItemsHelper.getLatLngs().length - 1);
+                NEXT_LOCATION = sequencedRoute.get(0);
 
-    private void sendNotif() {
-        SmsManager smsManager = SmsManager.getDefault();
-        for (Item item : assignedItemsHelper.getAllItems()) {
-            smsManager.sendTextMessage(item.getItemRecipientContactNumber(),
-                    null,
-                    "WE ARE GOING TO DELIVER YOUR PACKAGE TODAY",
-                    null,
-                    null);
+                zoomRoute(Arrays.asList(assignedItemsHelper.getLatLngs()));
+                getSequencedRoute();
+            }
         }
     }
 
-//    private LatLng getBounds(LatLng[] LatLngs) {
-//        LatLngBounds.Builder builder = new LatLngBounds.Builder();
-//        for (int i = 0; i < latLngs.length; i++) {
-//            builder.include(LatLngs[i]);
-//        }
-//        return builder.build().getCenter();
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//        if(isSequenced)return;
+//        startLocationUpdates();
 //    }
 
     @Override
     protected void onStop() {
         super.onStop();
+
+
+        sequencedRouteHelper.setStopDeliveryTime();
+        sequencedRouteHelper.setInitialDeliveryTime();
+        sequencedRouteHelper.setmClusterMarkers(mClusterMarkers);
+        sequencedRouteHelper.setRiderLatlng(mMarker.getPosition());
         fusedLocationClient.removeLocationUpdates(locationCallback);
 
-        SharedPreferences.Editor prefsEditor = mprefs.edit();
+
         Gson gson = new Gson();
-        //sequencedRouteHelper.setTotalDeliveryTime(totalDeliveryTime);
         String assignedItemsHelper = gson.toJson(AssignedItemsHelper.getInstance());
-        //String sequencedItemsHelper = gson.toJson(SequencedRouteHelper.getInstance());
+        String sequencedRouteHelper = gson.toJson(SequencedRouteHelper.getInstance());
+        String driverDetails = gson.toJson(DriverDetails.getInstance());
+
+        SharedPreferences.Editor prefsEditor = mprefs.edit();
+        prefsEditor.putString("sequencedRouteHelper", sequencedRouteHelper);
         prefsEditor.putString("assignedItemsHelper", assignedItemsHelper);
-        //prefsEditor.putString("sequencedItemsHelper", sequencedItemsHelper);
+        prefsEditor.putInt("CURRENT_LOCATION", CURRENT_LOCATION);
+        prefsEditor.putString("driverDetails", driverDetails);
+        prefsEditor.putBoolean("isSequenced", isSequenced);
         prefsEditor.apply();
+    }
+
+    private final View.OnClickListener fabMainClick = v -> {
+        fabMain.setEnabled(false);
+        if (sequencedRouteHelper.isInitial())
+            new ItineraryDialog().show(getSupportFragmentManager(), "ItineraryDialog");
+        else
+            new PopUpDialog(PhysicsFunctions.getDistance(assignedItemsHelper.getLatLngAtPosition(CURRENT_LOCATION),
+                    assignedItemsHelper.getLatLngAtPosition(NEXT_LOCATION)), NEXT_LOCATION).show(getSupportFragmentManager(), "popup");
+        fabMain.setEnabled(true);
+    };
+
+    private BitmapDescriptor setMarkerIcon(int drawable) {
+        IconGenerator iconGenerator = new IconGenerator(this);
+        int markerWidth = (int) getResources().getDimension(R.dimen.custom_marker_image);
+        int markerHeight = (int) getResources().getDimension(R.dimen.custom_marker_image);
+        ImageView imageView = new ImageView(this);
+        imageView.setLayoutParams(new ViewGroup.LayoutParams(markerWidth, markerHeight));
+        imageView.setImageResource(drawable);
+        iconGenerator.setContentView(imageView);
+        iconGenerator.setBackground(new ColorDrawable(Color.TRANSPARENT));
+        Bitmap icon = iconGenerator.makeIcon();
+        return BitmapDescriptorFactory.fromBitmap(icon);
+    }
+
+    private void intentArrived() {
+
+        DocumentReference routeRef = FirebaseFirestore.getInstance().collection("Route_Detail").document();
+        double distance = PhysicsFunctions.getDistance(sequencedRouteHelper.getRIDER_LATLNG(), MOVING_LATLNG);
+        double est = PhysicsFunctions.getEST(distance);
+        double speed = PhysicsFunctions.getSpeed(distance, totalDestinationTime);
+        double scoreTime = PhysicsFunctions.getPercentError(distance, totalDestinationTime, est);
+        double scoreSpeed = PhysicsFunctions.getPercentError(distance, speed, 60);
+        double totalScore = PhysicsFunctions.getTotalScore(scoreSpeed, scoreTime);
+
+        sequencedRouteHelper.addRouteDetail(new RouteDetail(new Date(), routeRef.getId(), sequencedRouteHelper.getRouteHeaderID(), Utilities.getItemID(CURRENT_LOCATION),
+                Utilities.getItemID(ARRIVED_INDEX), totalScore, speed, est, totalDestinationTime, distance));
+
+        sequencedRouteHelper.addScoreBreakdown(new ScoreBreakdown(totalDestinationTime,
+                Utilities.getAddress(ARRIVED_INDEX), Utilities.roundOff(distance) + "KM", est,
+                Utilities.getAddress(CURRENT_LOCATION), routeRef.getId(), scoreSpeed, scoreTime, speed, totalScore));
+
+
+        Intent intent;
+        if (ARRIVED_INDEX != assignedItemsHelper.indexOfWarehouse()) {
+            sendMessageArrive();
+            intent = new Intent(SequencedRoute.this, ArrivedLocation.class);
+            intent.putExtra("destination", ARRIVED_INDEX);
+            startActivityForResult(intent, REQUEST_ARRIVED);
+            return;
+
+        }
+
+        GettingLocationDialog dialog = new GettingLocationDialog();
+        dialog.show(getSupportFragmentManager(), "showDialog");
+        sequencedRouteHelper.setStopDeliveryTime();
+        routeTaken.add(ARRIVED_INDEX);
+        updatePosition(false);
+
+        sequencedRoute.remove((Integer) ARRIVED_INDEX);
+
+
+
+        System.out.println("intentArrived: "+routeTaken);
+        System.out.println("intentArrived: "+sequencedRoute);
+
+        FirebaseFirestore.getInstance().collection("Route_Detail").document(routeRef.getId()).set(sequencedRouteHelper.getRouteDetails().get(sequencedRouteHelper.getRouteDetails().size() - 1))
+                .addOnSuccessListener(unused -> {
+
+                    startActivity(new Intent(this, FinishedRoute.class));
+                    dialog.dismiss();
+                    finish();
+
+                });
+
+    }
+
+
+    private void getSequencedRoute() {
+
+        sendNotif();
+        TspAlgorithm tspAlgorithm = new TspAlgorithm(assignedItemsHelper.indexOfWarehouse(), PhysicsFunctions.generateDistanceMatrix(assignedItemsHelper.getLatLngs()));
+        sequencedRoute = tspAlgorithm.getSequence();
+
+
+
+        for (int i = 0; i < assignedItemsHelper.getLatLngs().length - 1; i++) {
+            int indexSequencedRoute = sequencedRoute.indexOf(i);
+            ItemLocationMarker marker = new ItemLocationMarker(assignedItemsHelper.getLatLngAtPosition(i), indexSequencedRoute, i);
+            mClusterMarkers.add(marker);
+            manager.addItem(marker);
+            manager.cluster();
+        }
+
+        sequencedRoute.remove(0);
+        sequencedRouteHelper.setRouteCheck(sequencedRoute);
+        sequencedRouteHelper.setSequencedRoute(sequencedRoute);
+
+        System.out.println("METHOD "+sequencedRouteHelper.getSequencedRoute());
+        System.out.println(sequencedRouteHelper.getRouteCheck());
+
+        sequencedRouteHelper.setmClusterMarkers(mClusterMarkers);
+        isSequenced = true;
+
+
+        for (int i = 0; i < sequencedRoute.size() - 1; i++)
+            startDirections(assignedItemsHelper.getLatLngAtPosition(sequencedRoute.get(i)), assignedItemsHelper.getLatLngAtPosition(sequencedRoute.get(i + 1)), true);
+    }
+
+    private void removeMarkers() {
+        manager.clearItems();
+        manager.cluster();
+        mClusterMarkers.clear();
+    }
+
+    private void removePolyLines() {
+        if (arrayListOfPolyLines.isEmpty()) return;
+
+        for (ArrayList<Polyline> polylines : arrayListOfPolyLines) {
+            for (Polyline polyline : polylines) {
+                polyline.remove();
+            }
+        }
+        arrayListOfPolyLines.clear();
+    }
+
+    private void sendNotif() {
+        SmsManager smsManager = SmsManager.getDefault();
+        for (Item item : assignedItemsHelper.getAllItems()) {
+            if(phoneNumbers.contains(item.getItemRecipientContactNumber()))continue;
+            smsManager.sendTextMessage(item.getItemRecipientContactNumber(),
+                    null,
+                    "WE ARE GOING TO DELIVER YOUR PACKAGE TODAY",
+                    null,
+                    null);
+            phoneNumbers.add(item.getItemRecipientContactNumber());
+        }
+    }
+
+    private void sendMessageArrive() {
+        SmsManager smsManager = SmsManager.getDefault();
+        Item item = assignedItemsHelper.getItemAtPosition(ARRIVED_INDEX);
+        smsManager.sendTextMessage(item.getItemRecipientContactNumber(),
+                null,
+                "Good Day I have arrived at your location",
+                null,
+                null);
+    }
+
+    private void startTrip() {
+        removePolyLines();
+        startLocationUpdates();
+        startDirections(assignedItemsHelper.getLatLngAtPosition(CURRENT_LOCATION), assignedItemsHelper.getLatLngAtPosition(NEXT_LOCATION), false);
     }
 
     private void startLocationUpdates() {
@@ -418,14 +549,12 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
 
     }
 
-    private void startDirections(LatLng first, int second, boolean zoomAll) {
-        if(!switchMaterial.isChecked()) return;
+    private void startDirections(LatLng first, LatLng second, boolean zoomAll) {
+        if (!switchMaterial.isChecked()) return;
 
-
-        LatLng nextIndex = latLngs[second];
 
         com.google.maps.model.LatLng Origin = new com.google.maps.model.LatLng(first.latitude, first.longitude);
-        com.google.maps.model.LatLng Destination = new com.google.maps.model.LatLng(nextIndex.latitude, nextIndex.longitude);
+        com.google.maps.model.LatLng Destination = new com.google.maps.model.LatLng(second.latitude, second.longitude);
 
         DirectionsApiRequest directions = new DirectionsApiRequest(mGeoAPi);
         directions.mode(TravelMode.DRIVING);
@@ -447,9 +576,9 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
                         }
                         PolylineOptions po = new PolylineOptions().addAll(newDecodedPath);
                         po.color(Color.BLACK).width(16);
-                        Polyline polyline = googleMap.addPolyline(po);
+                        Polyline polyline = mGoogleMap.addPolyline(po);
                         po.color(ContextCompat.getColor(getApplicationContext(), R.color.colorPrimary)).width(10);
-                        Polyline polyline2 = googleMap.addPolyline(po);
+                        Polyline polyline2 = mGoogleMap.addPolyline(po);
                         mPolyLines.add(polyline);
                         mPolyLines.add(polyline2);
                         if (!zoomAll) {
@@ -472,9 +601,44 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
 
     }
 
+    private void updatePosition(boolean status) {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
+        DispatchRider dispatchRider =driverDetails.getDispatchRider();
+        if(dispatchRider == null){
+            FirebaseFirestore.getInstance().collection("Dispatch Riders").document(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                    .get().addOnSuccessListener(documentSnapshot -> {
+                        driverDetails.setDispatchRider(documentSnapshot.toObject(DispatchRider.class));
+            });
+            return;
+        }
+
+
+        FirebaseFirestore.getInstance().collection("DispatchRiders_Position").document(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                .set(new RiderPosition(
+                        dispatchRider.getCourier_id(),
+                        MOVING_LATLNG.latitude,
+                        MOVING_LATLNG.longitude,
+                        dispatchRider.getContactNumber(),
+                        dispatchRider.getId(),
+                        dispatchRider.getFname() + " " + dispatchRider.getLname(),
+                        dispatchRider.getVehicle_type(),
+                        status,
+                        Utilities.getAddress(NEXT_LOCATION),
+                        dispatchRider.getBranch())
+                );
+        String nested = "locations." + System.currentTimeMillis();
+
+
+//        FirebaseFirestore.getInstance().collection("Dispatch Riders")
+//                .document(FirebaseAuth.getInstance().getCurrentUser().getUid()).collection("history")
+//                .document(Utilities.getSimpleDate(new Date()))
+//                .update(nested, MOVING_LATLNG);
+
+    }
+
     public void zoomRoute(List<LatLng> latLngs) {
 
-        if (googleMap == null || latLngs == null || latLngs.isEmpty()) return;
+        if (mGoogleMap == null || latLngs == null || latLngs.isEmpty()) return;
 
         LatLngBounds.Builder boundsBuilder = new LatLngBounds.Builder();
         for (LatLng latLng : latLngs)
@@ -483,99 +647,11 @@ public class SequencedRoute extends AppCompatActivity implements OnMapReadyCallb
         int routePadding = 50;
         LatLngBounds latLngBounds = boundsBuilder.build();
 
-        googleMap.animateCamera(
+        mGoogleMap.animateCamera(
                 CameraUpdateFactory.newLatLngBounds(latLngBounds, routePadding),
                 600,
                 null
         );
     }
-
-
-    private void removePolyLines() {
-        if (arrayListOfPolyLines.isEmpty()) return;
-
-        for (ArrayList<Polyline> polylines : arrayListOfPolyLines) {
-            for (Polyline polyline : polylines) {
-                polyline.remove();
-            }
-        }
-        arrayListOfPolyLines.clear();
-    }
-
-    private void getSequencedRoute() {
-
-        double[][] distanceMatrix = new double[latLngs.length][latLngs.length];
-
-        for (int i = 0; i < latLngs.length; i++) {
-            for (int j = 0; j < latLngs.length; j++) {
-                if (distanceMatrix[i][j] == 0) {
-                    if (i == j) {
-                        continue;
-                    }
-                    double ans = haversineFormula(latLngs[i], latLngs[j]);
-                    distanceMatrix[i][j] = ans;
-                    distanceMatrix[j][i] = ans;
-
-                }
-            }
-        }
-
-        TspAlgorithm tspAlgorithm = new TspAlgorithm(latLngs.length - 1, distanceMatrix);
-        sequencedRoute = tspAlgorithm.getSequence();
-        sequencedRouteHelper.setSequencedRoute(sequencedRoute);
-        isSequenced = true;
-        sendNotif();
-        for (int i = 0; i < latLngs.length - 1; i++) {
-            int indexSequencedRoute = sequencedRoute.indexOf(i);
-            ItemLocationMarker marker = new ItemLocationMarker(latLngs[i], indexSequencedRoute, i);
-            mClusterMarkers.add(marker);
-            manager.addItem(marker);
-            manager.cluster();
-        }
-        sequencedRoute.remove(0);
-    }
-
-    private static double haversineFormula(LatLng latlng1, LatLng latlng2) {
-        double lat1 = latlng1.latitude;
-        double lon1 = latlng1.longitude;
-
-        double lat2 = latlng2.latitude;
-        double lon2 = latlng2.longitude;
-
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-
-        lat1 = Math.toRadians(lat1);
-        lat2 = Math.toRadians(lat2);
-
-        double a = Math.pow(Math.sin(dLat / 2), 2) + Math.pow(Math.sin(dLon / 2), 2) * Math.cos(lat1) * Math.cos(lat2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        double rad = 6371;
-        return rad * c;
-    }
-
-    private BitmapDescriptor setMarkerIcon(int drawable) {
-        IconGenerator iconGenerator = new IconGenerator(this);
-        int markerWidth = (int) getResources().getDimension(R.dimen.custom_marker_image);
-        int markerHeight = (int) getResources().getDimension(R.dimen.custom_marker_image);
-        ImageView imageView = new ImageView(this);
-        imageView.setLayoutParams(new ViewGroup.LayoutParams(markerWidth, markerHeight));
-        imageView.setImageResource(drawable);
-        iconGenerator.setContentView(imageView);
-        iconGenerator.setBackground(new ColorDrawable(Color.TRANSPARENT));
-        Bitmap icon = iconGenerator.makeIcon();
-        return BitmapDescriptorFactory.fromBitmap(icon);
-    }
-
-    @Override
-    public void startRoute() {
-        startTrip();
-    }
-
-    @Override
-    public void notNext(boolean proceed) {
-        if (proceed) intentArrived();
-    }
-
 
 }

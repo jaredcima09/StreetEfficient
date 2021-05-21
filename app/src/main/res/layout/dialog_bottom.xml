@@ -11,9 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:text="ID"
         android:textColor="@color/black"
-        android:textSize="10sp"
         app:drawableTopCompat="@drawable/ic_bar_code" />
 
     <LinearLayout
@@ -33,7 +31,6 @@
             android:id="@+id/review_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Name"
             android:textColor="@color/black"
             android:textSize="16sp" />
 
@@ -41,14 +38,12 @@
             android:id="@+id/review_address"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Address"
             android:textSize="12sp" />
 
         <TextView
             android:id="@+id/review_contact"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="CONTACT NUMBER"
             android:textSize="12sp" />
 
     </LinearLayout>
@@ -70,35 +65,30 @@
             android:id="@+id/review_sname"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Name"
             android:textSize="12sp" />
 
         <TextView
             android:id="@+id/review_scontact"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="CONTACT NUMBER"
             android:textSize="12sp" />
 
         <TextView
             android:id="@+id/review_cod"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="COD"
             android:textSize="12sp" />
 
         <TextView
             android:id="@+id/review_weight"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="WEIGHT"
             android:textSize="12sp" />
 
         <TextView
             android:id="@+id/review_encoded"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="ENCODED"
             android:textSize="12sp" />
     </LinearLayout>
 

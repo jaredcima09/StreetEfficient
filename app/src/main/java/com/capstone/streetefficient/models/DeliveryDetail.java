@@ -8,15 +8,25 @@ public class DeliveryDetail {
     private String del_item_id;
     private String delivery_status;
     private Date date;
+    private String signature;
 
     public DeliveryDetail() {
     }
 
-    public DeliveryDetail(String del_detail_id, String del_item_id, String delivery_status, Date date) {
+    public DeliveryDetail(String del_detail_id, String del_item_id, String delivery_status, Date date, String signature) {
         this.del_detail_id = del_detail_id;
         this.del_item_id = del_item_id;
         this.delivery_status = delivery_status;
         this.date = date;
+        this.signature = signature;
+    }
+
+    public String getSignature() {
+        return signature;
+    }
+
+    public void setSignature(String signature) {
+        this.signature = signature;
     }
 
     public String getDel_detail_id() {

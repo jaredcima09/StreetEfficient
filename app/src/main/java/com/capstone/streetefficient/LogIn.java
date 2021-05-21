@@ -12,6 +12,7 @@ import android.widget.Toast;
 import com.capstone.streetefficient.functions.GetItemsAssigned;
 import com.capstone.streetefficient.functions.Utilities;
 import com.capstone.streetefficient.singletons.AssignedItemsHelper;
+import com.capstone.streetefficient.singletons.DriverDetails;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
@@ -71,13 +72,14 @@ public class LogIn extends AppCompatActivity {
                             return;
                         }
 
-                        if (Password.getEditText().getText().toString().trim().equals("rider123")) {
+                        if (documentSnapshot.getString("password").equals("rider123")) {
                             Intent intent = new Intent(this, NewPassword.class);
                             startActivity(intent);
                             finish();
                             return;
                         }
                         AssignedItemsHelper assignedItemsHelper = AssignedItemsHelper.getInstance();
+                        DriverDetails.getInstance();
                         assignedItemsHelper.reset();
                         new GetItemsAssigned(Utilities.getSimpleDate(new Date()), this, auth.getCurrentUser().getUid());
                     });

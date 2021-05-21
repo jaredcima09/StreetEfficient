@@ -19,6 +19,8 @@ public class DeliveryHeader implements Serializable {
 
     }
 
+
+
     public DeliveryHeader(String item_id, String rider_id, String assignedBy, String item_weight, String del_item_id, String del_date_sched_string, String itemRecipientContactNumber, Date date_assigned, Date del_date_sched) {
         this.item_id = item_id;
         this.rider_id = rider_id;
@@ -101,5 +103,10 @@ public class DeliveryHeader implements Serializable {
 
     public void setDel_date_sched(Date del_date_sched) {
         this.del_date_sched = del_date_sched;
+    }
+
+    @Override
+    public String toString() {
+        return "item id: "+ item_id;
     }
 }

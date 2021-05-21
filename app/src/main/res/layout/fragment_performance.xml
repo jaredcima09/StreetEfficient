@@ -30,7 +30,7 @@
             android:layout_marginTop="8dp"
             android:background="@color/white"
             android:padding="8dp"
-            android:text="@string/overall_performance_score" />
+            android:text="@string/overall_performance_score"/>
 
         <TextView
             android:id="@+id/performance_speed"
@@ -110,10 +110,10 @@
             android:visibility="gone" />
 
         <androidx.recyclerview.widget.RecyclerView
-            android:layout_marginBottom="8dp"
             android:id="@+id/performance_recycler"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_marginBottom="8dp"
             android:visibility="gone" />
 
     </LinearLayout>

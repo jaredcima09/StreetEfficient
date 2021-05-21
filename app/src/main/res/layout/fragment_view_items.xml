@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/white"
     tools:context=".fragments.AssignedItemsFragment">
 
     <LinearLayout
@@ -47,15 +48,15 @@
                 android:textColor="@color/white" />
         </LinearLayout>
 
-
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
-        android:layout_marginTop="8dp"
         android:id="@+id/items_recycler"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/holder" />
+        android:layout_below="@id/holder"
+
+        android:layout_marginTop="8dp" />
 
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton

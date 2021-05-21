@@ -44,6 +44,7 @@ public class Utilities {
 
     public static double assignedWeight(ArrayList<Item> items) {
         double weight = 0;
+        if(items == null) return weight;
         for (Item item : items) weight += Double.parseDouble(item.getItemweight());
         return weight;
     }
@@ -69,16 +70,29 @@ public class Utilities {
     public static SpannableStringBuilder assessScore(Double score) {
         String str = "\n" + roundOff(score) + " %";
         SpannableStringBuilder stringBuilder = new SpannableStringBuilder((str));
+
+        if (score >= 81)
+            stringBuilder.setSpan(new ForegroundColorSpan(Color.parseColor("#25FF06")), 0, str.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+
+        else if (score >= 61)
+            stringBuilder.setSpan(new ForegroundColorSpan(Color.parseColor("#95D500")), 0, str.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+
+        else if (score >= 41)
+            stringBuilder.setSpan(new ForegroundColorSpan(Color.parseColor("#E6EA00")), 0, str.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+
+        else if (score >= 21)
+            stringBuilder.setSpan(new ForegroundColorSpan(Color.parseColor("#DF5F00")), 0, str.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+
+        else
+            stringBuilder.setSpan(new ForegroundColorSpan(Color.parseColor("#DF0000")), 0, str.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+
         stringBuilder.setSpan(new android.text.style.StyleSpan(Typeface.BOLD), 0, str.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         stringBuilder.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC), 0, str.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-        if (score >= 70)
-            stringBuilder.setSpan(new ForegroundColorSpan(Color.parseColor("#008000")), 0, str.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        else if (score >= 50)
-            stringBuilder.setSpan(new ForegroundColorSpan(Color.parseColor("#FF781F")), 0, str.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        else
-            stringBuilder.setSpan(new ForegroundColorSpan(Color.RED), 0, str.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-
         return stringBuilder;
     }
 
